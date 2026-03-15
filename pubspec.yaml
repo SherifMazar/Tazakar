@@ -39,9 +39,9 @@ dependencies:
   in_app_purchase: ^3.2.0
 
   # Firebase (Remote Config + Crashlytics only)
-  firebase_core: ^3.8.0
-  firebase_remote_config: ^5.1.4
-  firebase_crashlytics: ^4.1.4
+  firebase_core: ^4.5.0
+  firebase_remote_config: ^6.2.0
+  firebase_crashlytics: ^5.0.8
 
   # Utilities
   intl: ^0.20.1

@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tazakar/core/constants/app_constants.dart';
 import 'package:tazakar/core/router/app_router.dart';
+import 'package:tazakar/infrastructure/database/database_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +18,9 @@ Future<void> main() async {
 
   // Initialise Firebase (Remote Config + Crashlytics only)
   await Firebase.initializeApp();
+
+  // Pass Flutter errors to Crashlytics
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
   // Fetch MONETIZATION_ACTIVE flag before UI loads
   final remoteConfig = FirebaseRemoteConfig.instance;
@@ -33,9 +38,16 @@ Future<void> main() async {
     // Fail silently — default false is safe
   }
 
+  // Eagerly initialise the encrypted SQLCipher database before any widget
+  // renders. This guarantees DatabaseService is ready when the first route
+  // mounts and prevents any FutureProvider loading state flash on startup.
+  final container = ProviderContainer();
+  await container.read(databaseServiceProvider.future);
+
   runApp(
-    const ProviderScope(
-      child: TazakarApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const TazakarApp(),
     ),
   );
 }
