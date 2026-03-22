@@ -28,9 +28,10 @@ dependencies:
   # Secure key storage
   flutter_secure_storage: ^9.2.2
 
-  # Notifications (fully local — no FCM)
-  flutter_local_notifications: ^18.0.1
+# Notifications (fully local — no FCM)
+  flutter_local_notifications: ^18.0.0
   android_alarm_manager_plus: ^5.0.0
+  timezone: ^0.9.4
 
   # TFLite runtime (Whisper + CAMeL)
   tflite_flutter: ^0.10.4

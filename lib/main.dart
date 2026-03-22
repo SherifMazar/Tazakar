@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tazakar/core/constants/app_constants.dart';
 import 'package:tazakar/core/router/app_router.dart';
 import 'package:tazakar/infrastructure/database/database_service.dart';
+import 'package:tazakar/core/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,7 +44,7 @@ Future<void> main() async {
   // mounts and prevents any FutureProvider loading state flash on startup.
   final container = ProviderContainer();
   await container.read(databaseServiceProvider.future);
-
+  await NotificationService.instance.init();
   runApp(
     UncontrolledProviderScope(
       container: container,
