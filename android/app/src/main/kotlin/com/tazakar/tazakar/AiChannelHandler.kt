@@ -17,19 +17,9 @@ import kotlinx.coroutines.withContext
 
 /**
  * Native Android handler for the Tazakar AI platform channel.
- *
  * Channel: com.tazakar.app/ai_channel
  *
- * Handles:
- *   - loadModel      → loads Whisper-tiny INT8 (stub in Phase 3.3)
- *   - isModelLoaded  → returns model readiness
- *   - startRecording → begins 16kHz mono PCM audio capture
- *   - stopRecording  → stops capture, returns raw PCM bytes
- *   - transcribeAudio → runs Whisper inference (stub in Phase 3.3)
- *
- * Hard constraints honoured:
- *   SC-01  Zero cloud AI — all inference on-device only
- *   FR-P02 Zero user data transmitted to any server
+ * Audio pipeline: AudioRecord → RNNoiseProcessor → Whisper-tiny INT8
  */
 class AiChannelHandler(
   private val activity: FlutterActivity,
@@ -38,8 +28,6 @@ class AiChannelHandler(
 
   companion object {
     const val CHANNEL_NAME = "com.tazakar.app/ai_channel"
-
-    // Whisper requires 16kHz mono 16-bit PCM
     private const val SAMPLE_RATE = 16000
     private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
     private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
@@ -55,11 +43,8 @@ class AiChannelHandler(
 
   init {
     channel.setMethodCallHandler(this)
+    RNNoiseProcessor.init()
   }
-
-  // ─────────────────────────────────────────────
-  // METHOD CALL DISPATCH
-  // ─────────────────────────────────────────────
 
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
@@ -83,11 +68,6 @@ class AiChannelHandler(
   // MODEL MANAGEMENT
   // ─────────────────────────────────────────────
 
-  /**
-   * Loads Whisper-tiny INT8 model from assets.
-   * Phase 3.3 stub — returns true to unblock channel wiring.
-   * Real model loading implemented in Objective 5.
-   */
   private fun handleLoadModel(result: MethodChannel.Result) {
     // TODO(S3.3-Obj5): Load whisper-tiny-int8.tflite from assets
     isModelReady = true
@@ -100,7 +80,6 @@ class AiChannelHandler(
   // ─────────────────────────────────────────────
 
   private fun handleStartRecording(result: MethodChannel.Result) {
-    // Check microphone permission
     if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO)
       != PackageManager.PERMISSION_GRANTED
     ) {
@@ -121,30 +100,23 @@ class AiChannelHandler(
 
         audioRecord = AudioRecord(
           MediaRecorder.AudioSource.MIC,
-          SAMPLE_RATE,
-          CHANNEL_CONFIG,
-          AUDIO_FORMAT,
-          minBufferSize
+          SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, minBufferSize
         )
 
         recordedBytes.clear()
         isRecording = true
         audioRecord?.startRecording()
 
-        android.util.Log.d("AiChannel", "startRecording → started at 16kHz mono PCM")
+        android.util.Log.d("AiChannel", "startRecording → 16kHz mono PCM")
         result.success(true)
 
-        // Read audio in background
         withContext(Dispatchers.IO) {
           val buffer = ByteArray(minBufferSize)
           while (isRecording) {
             val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-            if (read > 0) {
-              recordedBytes.addAll(buffer.take(read))
-            }
+            if (read > 0) recordedBytes.addAll(buffer.take(read))
           }
         }
-
       } catch (e: Exception) {
         android.util.Log.e("AiChannel", "startRecording error: ${e.message}")
         result.error("RECORDING_ERROR", e.message, null)
@@ -163,28 +135,30 @@ class AiChannelHandler(
     audioRecord?.release()
     audioRecord = null
 
-    val audioBytes = recordedBytes.toByteArray()
-    android.util.Log.d("AiChannel", "stopRecording → ${audioBytes.size} bytes")
-    result.success(audioBytes)
+    val rawBytes = recordedBytes.toByteArray()
+
+    // ── RNNoise pipeline (stub in Phase 3.3, real processing in Phase 4) ──
+    val denoisedBytes = RNNoiseProcessor.process(rawBytes)
+
+    android.util.Log.d(
+      "AiChannel",
+      "stopRecording → raw=${rawBytes.size}b denoised=${denoisedBytes.size}b"
+    )
+    result.success(denoisedBytes)
   }
 
   // ─────────────────────────────────────────────
   // TRANSCRIPTION
   // ─────────────────────────────────────────────
 
-  /**
-   * Transcribes PCM audio using Whisper-tiny INT8.
-   * Phase 3.3 stub — returns placeholder text to unblock channel wiring.
-   * Real inference implemented in Objective 5.
-   */
   private fun handleTranscribeAudio(audioBytes: ByteArray, result: MethodChannel.Result) {
     if (!isModelReady) {
       result.error("MODEL_NOT_LOADED", "Call loadModel() before transcribeAudio()", null)
       return
     }
 
-    // TODO(S3.3-Obj5): Pass audioBytes through RNNoise → Whisper-tiny INT8
-    android.util.Log.d("AiChannel", "transcribeAudio → stub (${audioBytes.size} bytes received)")
+    // TODO(S3.3-Obj6): Pass audioBytes through Whisper-tiny INT8
+    android.util.Log.d("AiChannel", "transcribeAudio → stub (${audioBytes.size} bytes)")
     result.success("نص تجريبي — Whisper stub")
   }
 
@@ -197,6 +171,7 @@ class AiChannelHandler(
     audioRecord?.stop()
     audioRecord?.release()
     audioRecord = null
+    RNNoiseProcessor.release()
     channel.setMethodCallHandler(null)
   }
 }
