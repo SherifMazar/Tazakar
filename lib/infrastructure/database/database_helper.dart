@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tazakar/core/constants/app_constants.dart';
 import 'package:tazakar/infrastructure/database/encryption_key_manager.dart';
+import 'package:tazakar/core/database/migrations/migration_v2.dart';
 
 class DatabaseHelper {
   static Database? _db;
@@ -13,16 +14,35 @@ class DatabaseHelper {
   }
 
   static Future<Database> _initDatabase() async {
-    final key = await EncryptionKeyManager.getOrCreateKey();
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, AppConstants.dbName);
 
-    return openDatabase(
+    final isFfi = databaseFactory.runtimeType.toString().contains('Ffi');
+
+    if (isFfi) {
+      // Test environment — plain sqflite_common_ffi, no encryption
+      return databaseFactory.openDatabase(
+        path,
+        options: OpenDatabaseOptions(
+          version: AppConstants.dbVersion,
+          onCreate: _onCreate,
+          onUpgrade: _onUpgrade,
+        ),
+      );
+    }
+
+    // Device environment — SQLCipher via sqlcipher_flutter_libs
+    final key = await EncryptionKeyManager.getOrCreateKey();
+    return databaseFactory.openDatabase(
       path,
-      version: AppConstants.dbVersion,
-      password: key,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
+      options: OpenDatabaseOptions(
+        version: AppConstants.dbVersion,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+        onConfigure: (db) async {
+          await db.rawQuery("PRAGMA key = '$key'");
+        },
+      ),
     );
   }
 
@@ -98,7 +118,9 @@ class DatabaseHelper {
   }
 
   static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Future migrations go here
+    if (oldVersion < 2) {
+      await MigrationV2.migrate(db);
+    }
     debugPrint('[DB] Upgrade from v$oldVersion to v$newVersion');
   }
 

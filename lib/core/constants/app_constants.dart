@@ -6,7 +6,7 @@ class AppConstants {
 
   // Database
   static const String dbName = 'tazakar.db';
-  static const int dbVersion = 1;
+  static const int dbVersion = 2;
 
   // Free tier limits
   static const int freeTierReminderCap = 10;

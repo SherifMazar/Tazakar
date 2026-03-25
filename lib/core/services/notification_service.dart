@@ -6,14 +6,19 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:tazakar/infrastructure/database/database_service.dart';
+import '../../features/notification/data/datasources/local/notification_audit_dao.dart';
+import '../../features/notification/domain/entities/notification_audit_log.dart';
 
 /// Fully local notification service — no FCM, no cloud (SC-01 / FR-P02).
 class NotificationService {
-  NotificationService._();
-  static final NotificationService instance = NotificationService._();
+  final FlutterLocalNotificationsPlugin _plugin;
+  final NotificationAuditDao _auditDao;
 
-  final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  NotificationService({
+    required FlutterLocalNotificationsPlugin plugin,
+    required NotificationAuditDao auditDao,
+  })  : _plugin = plugin,
+        _auditDao = auditDao;
 
   static const String _androidChannelId = 'tazakar_reminders';
   static const String _androidChannelName = 'Tazakar Reminders';
@@ -104,6 +109,7 @@ class NotificationService {
     );
 
     debugPrint('[NotificationService] Scheduled #$reminderId at $scheduledAt');
+    await _audit(reminderId, NotificationEvent.scheduled);
   }
 
   /// Test-only: schedules a notification without persisting to DB.
@@ -175,6 +181,7 @@ class NotificationService {
     await _plugin.cancel(reminderId);
     await _markCancelled(reminderId, db);
     debugPrint('[NotificationService] Cancelled #$reminderId');
+    await _audit(reminderId, NotificationEvent.cancelled);
   }
 
   Future<void> cancelAll() async {
@@ -216,6 +223,7 @@ class NotificationService {
         scheduledAt: triggerAt,
         db: db,
       );
+      await _audit(int.tryParse(reminderId) ?? 0, NotificationEvent.rescheduled);
       count++;
     }
 
@@ -225,6 +233,19 @@ class NotificationService {
   // ─────────────────────────────────────────────
   // DB HELPERS
   // ─────────────────────────────────────────────
+
+  Future<void> _audit(
+    int reminderId,
+    NotificationEvent event, {
+    String? meta,
+  }) async {
+    await _auditDao.insert(NotificationAuditLog(
+      reminderId: reminderId,
+      event: event,
+      occurredAt: DateTime.now(),
+      meta: meta,
+    ));
+  }
 
   Future<void> _persistNotification({
     required int reminderId,

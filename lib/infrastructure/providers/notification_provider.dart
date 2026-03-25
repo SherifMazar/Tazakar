@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/notification_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:tazakar/features/notification/data/datasources/local/notification_audit_dao.dart';
+import 'package:tazakar/core/services/notification_service.dart';
 import 'database_provider.dart';
 
 /// Riverpod provider for [NotificationService].
@@ -8,8 +10,15 @@ import 'database_provider.dart';
 /// Usage:
 ///   final notifications = ref.read(notificationServiceProvider);
 ///   await notifications.scheduleReminder(...);
+final notificationAuditDaoProvider = Provider<NotificationAuditDao>((ref) {
+  return NotificationAuditDao();
+});
+
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  return NotificationService.instance;
+  return NotificationService(
+    plugin: FlutterLocalNotificationsPlugin(),
+    auditDao: ref.read(notificationAuditDaoProvider),
+  );
 });
 
 /// Async initialisation provider — call once from app bootstrap (main.dart).
