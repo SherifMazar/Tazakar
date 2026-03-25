@@ -3,54 +3,31 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tazakar/core/constants/app_constants.dart';
 import 'package:tazakar/core/router/app_router.dart';
 import 'package:tazakar/infrastructure/database/database_service.dart';
-import 'package:tazakar/core/services/notification_service.dart';
+import 'package:tazakar/core/providers/theme_provider.dart';
+import 'package:tazakar/core/providers/locale_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Lock orientation to portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
-
-  // Initialise Firebase (Remote Config + Crashlytics only)
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await Firebase.initializeApp();
-
-  // Pass Flutter errors to Crashlytics
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-
-  // Fetch MONETIZATION_ACTIVE flag before UI loads
   final remoteConfig = FirebaseRemoteConfig.instance;
   await remoteConfig.setConfigSettings(RemoteConfigSettings(
     fetchTimeout: const Duration(seconds: 10),
     minimumFetchInterval: const Duration(hours: 1),
   ));
-  await remoteConfig.setDefaults({
-    AppConstants.monetizationActiveKey: false,
-  });
-
-  try {
-    await remoteConfig.fetchAndActivate();
-  } catch (_) {
-    // Fail silently — default false is safe
-  }
-
-  // Eagerly initialise the encrypted SQLCipher database before any widget
-  // renders. This guarantees DatabaseService is ready when the first route
-  // mounts and prevents any FutureProvider loading state flash on startup.
+  await remoteConfig.setDefaults({AppConstants.monetizationActiveKey: false});
+  try { await remoteConfig.fetchAndActivate(); } catch (_) {}
   final container = ProviderContainer();
   await container.read(databaseServiceProvider.future);
-  await NotificationService.instance.init();
-  runApp(
-    UncontrolledProviderScope(
-      container: container,
-      child: const TazakarApp(),
-    ),
-  );
+  await container.read(themeModeProvider.future);
+  await container.read(localeProvider.future);
+  runApp(UncontrolledProviderScope(container: container, child: const TazakarApp()));
 }
 
 class TazakarApp extends ConsumerWidget {
@@ -59,15 +36,32 @@ class TazakarApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(resolvedThemeModeProvider);
+    final locale = ref.watch(resolvedLocaleProvider);
 
     return MaterialApp.router(
       title: 'Tazakar',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
+      themeMode: themeMode,
+      locale: locale,
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         fontFamily: 'Cairo',
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D8C)),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        fontFamily: 'Cairo',
+        brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2E7D8C),
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
       ),
