@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'subscription_tier.dart';
 import 'feature_gate_service.dart';
+import 'feature_gate_config.dart';
 
 // ---------------------------------------------------------------------------
 // Internal primitive providers — swap these when Remote Config is wired.

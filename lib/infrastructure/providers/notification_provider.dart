@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tazakar/features/notification/data/datasources/local/notification_audit_dao.dart';
 import 'package:tazakar/core/services/notification_service.dart';
-import 'database_provider.dart';
+import 'package:tazakar/infrastructure/database/database_service.dart';
 
 /// Riverpod provider for [NotificationService].
 /// Mirrors the DatabaseService provider pattern (DEC-24).
@@ -32,6 +32,8 @@ final notificationInitProvider = FutureProvider<void>((ref) async {
 /// Depends on databaseProvider being initialised first.
 final rescheduleOnBootProvider = FutureProvider<void>((ref) async {
   final service = ref.read(notificationServiceProvider);
-  final db = await ref.watch(databaseProvider.future);
+  final dbAsync = ref.watch(databaseServiceProvider);
+  final db = dbAsync.valueOrNull;
+  if (db == null) return;
   await service.rescheduleAll(db);
 });

@@ -14,6 +14,9 @@ import 'package:tazakar/features/settings/presentation/screens/settings_appearan
 import 'package:tazakar/features/settings/presentation/screens/settings_notifications_screen.dart';
 import 'package:tazakar/features/settings/presentation/screens/settings_privacy_screen.dart';
 import 'package:tazakar/features/settings/presentation/screens/settings_about_screen.dart';
+import 'package:tazakar/features/reminder/presentation/screens/voice_input_screen.dart';
+import 'package:tazakar/features/reminder/presentation/screens/clarification_screen.dart';
+import 'package:tazakar/features/reminder/presentation/screens/create_reminder_screen.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -75,6 +78,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.addReminder,
         name: 'addReminder',
         builder: (context, state) => const AddReminderScreen(),
+      ),
+      GoRoute(
+        path: '/voice-input',
+        name: 'voiceInput',
+        builder: (context, state) => const VoiceInputScreen(),
+      ),
+      GoRoute(
+        path: '/clarification',
+        name: 'clarification',
+        builder: (context, state) => ClarificationScreen(
+          initialIntent: state.extra as dynamic,
+        ),
+      ),
+      GoRoute(
+        path: '/create-reminder',
+        name: 'createReminder',
+        builder: (context, state) => CreateReminderScreen(
+          intent: state.extra as dynamic,
+        ),
       ),
       GoRoute(
         path: AppRoutes.reminderDetail,

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tazakar/features/reminder/application/reminder_providers.dart';
+import 'package:tazakar/features/reminder/presentation/widgets/reminder_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
-
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
@@ -16,16 +17,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (index == 2) {
       context.goNamed('settings');
     } else {
-      setState(() {
-        _currentIndex = index;
-      });
+      setState(() => _currentIndex = index);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     const tealColor = Color(0xFF2E7D8C);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -42,13 +40,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: const [
-          _RemindersTabPlaceholder(),
+          _RemindersTab(),
           _CategoriesTabPlaceholder(),
           _SettingsTabPlaceholder(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => context.pushNamed('voiceInput'),
         backgroundColor: tealColor,
         foregroundColor: Colors.white,
         child: const Icon(Icons.mic_rounded),
@@ -78,44 +76,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _RemindersTabPlaceholder extends StatelessWidget {
-  const _RemindersTabPlaceholder();
+class _RemindersTab extends ConsumerWidget {
+  const _RemindersTab();
 
   @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Reminders',
-        style: TextStyle(fontFamily: 'Cairo', fontSize: 24),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remindersAsync = ref.watch(activeRemindersProvider);
+    return remindersAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('خطأ: $e')),
+      data: (reminders) {
+        if (reminders.isEmpty) {
+          return const Center(
+            child: Text(
+              'لا توجد تذكيرات\nNo reminders yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Cairo', fontSize: 18),
+            ),
+          );
+        }
+        return ListView.builder(
+          itemCount: reminders.length,
+          itemBuilder: (context, i) => ReminderCard(reminder: reminders[i]),
+        );
+      },
     );
   }
 }
 
 class _CategoriesTabPlaceholder extends StatelessWidget {
   const _CategoriesTabPlaceholder();
-
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text(
-        'Categories',
-        style: TextStyle(fontFamily: 'Cairo', fontSize: 24),
-      ),
+      child: Text('Categories', style: TextStyle(fontFamily: 'Cairo', fontSize: 24)),
     );
   }
 }
 
 class _SettingsTabPlaceholder extends StatelessWidget {
   const _SettingsTabPlaceholder();
-
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text(
-        'Settings',
-        style: TextStyle(fontFamily: 'Cairo', fontSize: 24),
-      ),
+      child: Text('Settings', style: TextStyle(fontFamily: 'Cairo', fontSize: 24)),
     );
   }
 }
