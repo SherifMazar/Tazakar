@@ -11,21 +11,22 @@ import 'package:tazakar/features/reminder/domain/usecases/reminder_usecases.dart
 class MockReminderRepository extends Mock implements ReminderRepository {}
 
 Reminder makeReminder({
-  String? id,
+  int id = 0,
   String title = 'اجتماع العمل',
-  DateTime? scheduledAt,
-  RecurrenceType recurrenceType = RecurrenceType.none,
+  DateTime? remindAt,
+  RecurrenceType recurrence = RecurrenceType.none,
   int categoryId = 1,
   bool isCompleted = false,
 }) {
   return Reminder(
     id: id,
     title: title,
-    scheduledAt: scheduledAt ?? DateTime.now().add(const Duration(hours: 1)),
-    recurrenceType: recurrenceType,
+    remindAt: remindAt ?? DateTime.now().add(const Duration(hours: 1)),
+    recurrence: recurrence,
     categoryId: categoryId,
     isCompleted: isCompleted,
     createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
   );
 }
 
@@ -52,10 +53,10 @@ void main() {
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
       final reminder = makeReminder();
       when(() => repo.count()).thenAnswer((_) async => 0);
-      when(() => repo.create(reminder)).thenAnswer((_) async => 'uuid-001');
+      when(() => repo.create(reminder)).thenAnswer((_) async => 1);
       final result = await useCase.execute(reminder);
       expect(result, isA<CreateReminderSuccess>());
-      expect((result as CreateReminderSuccess).id, 'uuid-001');
+      expect((result as CreateReminderSuccess).id, 1);
     });
 
     test('fails with invalidTitle when title is empty', () async {
@@ -70,7 +71,7 @@ void main() {
     test('fails with invalidScheduledAt when time is in the past', () async {
       final gate = makeGate();
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
-      final reminder = makeReminder(scheduledAt: DateTime.now().subtract(const Duration(minutes: 5)));
+      final reminder = makeReminder(remindAt: DateTime.now().subtract(const Duration(minutes: 5)));
       final result = await useCase.execute(reminder);
       expect(result, isA<CreateReminderFailureResult>());
       expect((result as CreateReminderFailureResult).failure, CreateReminderFailure.invalidScheduledAt);
@@ -91,7 +92,7 @@ void main() {
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
       final reminder = makeReminder();
       when(() => repo.count()).thenAnswer((_) async => 10);
-      when(() => repo.create(reminder)).thenAnswer((_) async => 'uuid-002');
+      when(() => repo.create(reminder)).thenAnswer((_) async => 2);
       final result = await useCase.execute(reminder);
       expect(result, isA<CreateReminderSuccess>());
     });
@@ -99,7 +100,7 @@ void main() {
     test('fails with recurrenceNotAllowed for daily on free tier', () async {
       final gate = makeGate(monetisationActive: true);
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
-      final reminder = makeReminder(recurrenceType: RecurrenceType.daily);
+      final reminder = makeReminder(recurrence: RecurrenceType.daily);
       when(() => repo.count()).thenAnswer((_) async => 0);
       final result = await useCase.execute(reminder);
       expect(result, isA<CreateReminderFailureResult>());
@@ -109,9 +110,9 @@ void main() {
     test('allows monthly recurrence on free tier (DEC-26)', () async {
       final gate = makeGate(monetisationActive: true);
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
-      final reminder = makeReminder(recurrenceType: RecurrenceType.monthly);
+      final reminder = makeReminder(recurrence: RecurrenceType.monthly);
       when(() => repo.count()).thenAnswer((_) async => 0);
-      when(() => repo.create(reminder)).thenAnswer((_) async => 'uuid-003');
+      when(() => repo.create(reminder)).thenAnswer((_) async => 3);
       final result = await useCase.execute(reminder);
       expect(result, isA<CreateReminderSuccess>());
     });
@@ -120,9 +121,9 @@ void main() {
       final gate = makeGate(monetisationActive: true, tier: SubscriptionTier.pro);
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
       for (final type in RecurrenceType.values) {
-        final reminder = makeReminder(recurrenceType: type);
+        final reminder = makeReminder(recurrence: type);
         when(() => repo.count()).thenAnswer((_) async => 0);
-        when(() => repo.create(reminder)).thenAnswer((_) async => 'uuid-pro');
+        when(() => repo.create(reminder)).thenAnswer((_) async => 100);
         final result = await useCase.execute(reminder);
         expect(result, isA<CreateReminderSuccess>(), reason: 'Pro should allow $type');
       }
@@ -132,16 +133,16 @@ void main() {
   group('ReadReminderUseCase', () {
     test('returns reminder when found', () async {
       final useCase = ReadReminderUseCase(repo);
-      final reminder = makeReminder(id: 'uuid-001');
-      when(() => repo.readById('uuid-001')).thenAnswer((_) async => reminder);
-      final result = await useCase.execute('uuid-001');
+      final reminder = makeReminder(id: 1);
+      when(() => repo.readById(1)).thenAnswer((_) async => reminder);
+      final result = await useCase.execute(1);
       expect(result, reminder);
     });
 
     test('returns null when not found', () async {
       final useCase = ReadReminderUseCase(repo);
-      when(() => repo.readById('missing')).thenAnswer((_) async => null);
-      final result = await useCase.execute('missing');
+      when(() => repo.readById(999)).thenAnswer((_) async => null);
+      final result = await useCase.execute(999);
       expect(result, isNull);
     });
   });
@@ -149,7 +150,7 @@ void main() {
   group('ReadAllRemindersUseCase', () {
     test('returns all reminders', () async {
       final useCase = ReadAllRemindersUseCase(repo);
-      final reminders = [makeReminder(id: 'uuid-001'), makeReminder(id: 'uuid-002')];
+      final reminders = [makeReminder(id: 1), makeReminder(id: 2)];
       when(() => repo.readAll()).thenAnswer((_) async => reminders);
       final result = await useCase.execute();
       expect(result, reminders);
@@ -167,7 +168,7 @@ void main() {
   group('ReadActiveRemindersUseCase', () {
     test('returns only active reminders', () async {
       final useCase = ReadActiveRemindersUseCase(repo);
-      final active = [makeReminder(id: 'uuid-001', isCompleted: false)];
+      final active = [makeReminder(id: 1, isCompleted: false)];
       when(() => repo.readActive()).thenAnswer((_) async => active);
       final result = await useCase.execute();
       expect(result.every((r) => !r.isCompleted), isTrue);
@@ -177,13 +178,13 @@ void main() {
   group('UpdateReminderUseCase', () {
     test('calls repository update with reminder', () async {
       final useCase = UpdateReminderUseCase(repo);
-      final reminder = makeReminder(id: 'uuid-001');
+      final reminder = makeReminder(id: 1);
       when(() => repo.update(reminder)).thenAnswer((_) async {});
       await useCase.execute(reminder);
       verify(() => repo.update(reminder)).called(1);
     });
 
-    test('asserts when id is null', () async {
+    test('succeeds when id is 0 (unsaved)', () async {
       final useCase = UpdateReminderUseCase(repo);
       final reminder = makeReminder();
       expect(() => useCase.execute(reminder), throwsA(isA<AssertionError>()));
@@ -193,9 +194,9 @@ void main() {
   group('DeleteReminderUseCase', () {
     test('calls repository delete with id', () async {
       final useCase = DeleteReminderUseCase(repo);
-      when(() => repo.delete('uuid-001')).thenAnswer((_) async {});
-      await useCase.execute('uuid-001');
-      verify(() => repo.delete('uuid-001')).called(1);
+      when(() => repo.delete(1)).thenAnswer((_) async {});
+      await useCase.execute(1);
+      verify(() => repo.delete(1)).called(1);
     });
   });
 
@@ -203,9 +204,9 @@ void main() {
     test('allows creation at count 9', () async {
       final gate = makeGate(monetisationActive: true);
       final useCase = CreateReminderUseCase(repository: repo, featureGate: gate);
-      final reminder = makeReminder(recurrenceType: RecurrenceType.monthly);
+      final reminder = makeReminder(recurrence: RecurrenceType.monthly);
       when(() => repo.count()).thenAnswer((_) async => 9);
-      when(() => repo.create(reminder)).thenAnswer((_) async => 'uuid-009');
+      when(() => repo.create(reminder)).thenAnswer((_) async => 9);
       final result = await useCase.execute(reminder);
       expect(result, isA<CreateReminderSuccess>());
     });
