@@ -3,10 +3,10 @@ import '../entities/reminder.dart';
 /// Contract only — implementation lives in the data layer.
 abstract interface class ReminderRepository {
   /// Persists a new reminder. Returns the assigned [id].
-  Future<String> create(Reminder reminder);
+  Future<int> create(Reminder reminder);
 
   /// Returns a single reminder by [id], or null if not found.
-  Future<Reminder?> readById(String id);
+  Future<Reminder?> readById(int id);
 
   /// Returns all reminders, ordered by [scheduledAt] ascending.
   Future<List<Reminder>> readAll();
@@ -18,7 +18,7 @@ abstract interface class ReminderRepository {
   Future<void> update(Reminder reminder);
 
   /// Soft-deletes by setting is_completed = 1.
-  Future<void> delete(String id);
+  Future<void> delete(int id);
 
   /// Hard-deletes all reminders. Used in tests only.
   Future<void> deleteAll();

@@ -7,7 +7,7 @@ class ReadReminderUseCase {
   const ReadReminderUseCase(this.repository);
   final ReminderRepository repository;
 
-  Future<Reminder?> execute(String id) => repository.readById(id);
+  Future<Reminder?> execute(int id) => repository.readById(id);
 }
 
 class ReadAllRemindersUseCase {
@@ -30,9 +30,9 @@ class UpdateReminderUseCase {
   const UpdateReminderUseCase(this.repository);
   final ReminderRepository repository;
 
-  Future<void> execute(Reminder reminder) async {
-    assert(reminder.id != null, 'Cannot update a reminder without an id');
-    await repository.update(reminder);
+  Future<void> execute(Reminder reminder) {
+    assert(reminder.id != 0, 'Cannot update an unsaved reminder');
+    return repository.update(reminder);
   }
 }
 
@@ -43,5 +43,5 @@ class DeleteReminderUseCase {
   final ReminderRepository repository;
 
   /// Soft-delete only (sets is_completed = 1).
-  Future<void> execute(String id) => repository.delete(id);
+  Future<void> execute(int id) => repository.delete(id);
 }

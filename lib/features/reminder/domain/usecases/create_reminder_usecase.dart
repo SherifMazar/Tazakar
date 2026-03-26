@@ -16,7 +16,7 @@ sealed class CreateReminderResult {
 
 final class CreateReminderSuccess extends CreateReminderResult {
   const CreateReminderSuccess(this.id);
-  final String id;
+  final int id;
 }
 
 final class CreateReminderFailureResult extends CreateReminderResult {
@@ -42,7 +42,7 @@ class CreateReminderUseCase {
     }
 
     // Guard: scheduled time must be in the future.
-    if (reminder.scheduledAt.isBefore(DateTime.now())) {
+    if (reminder.remindAt.isBefore(DateTime.now())) {
       return const CreateReminderFailureResult(
         CreateReminderFailure.invalidScheduledAt,
       );
@@ -60,7 +60,7 @@ class CreateReminderUseCase {
 
     // Guard: recurrence tier check (DEC-26).
     final allowedTypes = featureGate.availableRecurrenceOptions;
-    if (!allowedTypes.contains(reminder.recurrenceType)) {
+    if (!allowedTypes.contains(reminder.recurrence)) {
       return const CreateReminderFailureResult(
         CreateReminderFailure.recurrenceNotAllowed,
       );

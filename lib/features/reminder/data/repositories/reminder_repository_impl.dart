@@ -9,13 +9,13 @@ class ReminderRepositoryImpl implements ReminderRepository {
   final ReminderDao _dao;
 
   @override
-  Future<String> create(Reminder reminder) async {
+  Future<int> create(Reminder reminder) async {
     final row = ReminderMapper.toRow(reminder);
     return _dao.insert(row);
   }
 
   @override
-  Future<Reminder?> readById(String id) async {
+  Future<Reminder?> readById(int id) async {
     final row = await _dao.queryById(id);
     return row == null ? null : ReminderMapper.fromRow(row);
   }
@@ -42,7 +42,7 @@ class ReminderRepositoryImpl implements ReminderRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(int id) async {
     await _dao.softDelete(id);
   }
 
