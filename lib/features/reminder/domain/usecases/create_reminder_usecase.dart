@@ -1,3 +1,5 @@
+// lib/features/reminder/domain/usecases/create_reminder_usecase.dart
+
 import 'package:tazakar/core/services/feature_gate/feature_gate_service.dart';
 import '../entities/reminder.dart';
 import '../repositories/reminder_repository.dart';
@@ -42,7 +44,7 @@ class CreateReminderUseCase {
     }
 
     // Guard: scheduled time must be in the future.
-    if (reminder.remindAt.isBefore(DateTime.now())) {
+    if (reminder.scheduledAt.isBefore(DateTime.now())) {
       return const CreateReminderFailureResult(
         CreateReminderFailure.invalidScheduledAt,
       );

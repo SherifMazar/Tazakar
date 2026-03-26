@@ -1,27 +1,28 @@
+// lib/features/reminder/data/datasources/reminder_dao.dart
+//
+// Raw SQLCipher access for the reminders table.
+// No domain types — only maps in, maps out.
+// DEC-30: id is INTEGER PRIMARY KEY AUTOINCREMENT.
+
 import 'package:sqflite/sqflite.dart';
 import 'package:tazakar/infrastructure/database/database_helper.dart';
-import 'package:uuid/uuid.dart';
 
-/// Raw SQLCipher access for the reminders table.
-/// No domain types here — only maps in, maps out.
 class ReminderDao {
   static const _table = 'reminders';
-  static const _uuid = Uuid();
 
   Future<Database> get _db => DatabaseHelper.database;
 
-  Future<String> insert(Map<String, dynamic> row) async {
+  /// Inserts a new row and returns the SQLite-assigned AUTOINCREMENT id.
+  Future<int> insert(Map<String, dynamic> row) async {
     final db = await _db;
-    final id = _uuid.v4();
-    await db.insert(
+    return db.insert(
       _table,
-      {...row, 'id': id},
+      row,
       conflictAlgorithm: ConflictAlgorithm.fail,
     );
-    return id;
   }
 
-  Future<Map<String, dynamic>?> queryById(String id) async {
+  Future<Map<String, dynamic>?> queryById(int id) async {
     final db = await _db;
     final rows = await db.query(
       _table,
@@ -32,6 +33,7 @@ class ReminderDao {
     return rows.isEmpty ? null : rows.first;
   }
 
+  /// Returns all active (non-completed) reminders, oldest scheduled first.
   Future<List<Map<String, dynamic>>> queryAll() async {
     final db = await _db;
     return db.query(
@@ -51,8 +53,8 @@ class ReminderDao {
     );
   }
 
-  /// Soft-delete — sets is_completed = 1.
-  Future<int> softDelete(String id) async {
+  /// Soft-delete: sets is_completed = 1 and stamps updated_at.
+  Future<int> softDelete(int id) async {
     final db = await _db;
     return db.update(
       _table,
@@ -76,6 +78,6 @@ class ReminderDao {
     final result = await db.rawQuery(
       'SELECT COUNT(*) as cnt FROM $_table WHERE is_completed = 0',
     );
-    return firstIntValue(result) ?? 0;
+    return Sqflite.firstIntValue(result) ?? 0;
   }
 }

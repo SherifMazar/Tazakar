@@ -1,3 +1,5 @@
+// lib/features/reminder/data/repositories/reminder_repository_impl.dart
+
 import '../../domain/entities/reminder.dart';
 import '../../domain/repositories/reminder_repository.dart';
 import '../datasources/reminder_dao.dart';
@@ -5,7 +7,6 @@ import '../mappers/reminder_mapper.dart';
 
 class ReminderRepositoryImpl implements ReminderRepository {
   const ReminderRepositoryImpl(this._dao);
-
   final ReminderDao _dao;
 
   @override
@@ -28,13 +29,13 @@ class ReminderRepositoryImpl implements ReminderRepository {
 
   @override
   Future<List<Reminder>> readActive() async {
-    // queryAll already filters is_completed = 0.
+    // queryAll already filters is_completed = 0 — no duplication needed.
     return readAll();
   }
 
   @override
   Future<void> update(Reminder reminder) async {
-    assert(reminder.id != null, 'Cannot update a reminder without an id');
+    assert(reminder.id != 0, 'Cannot update an unsaved reminder (id == 0)');
     final row = ReminderMapper.toRow(
       reminder.copyWith(updatedAt: DateTime.now()),
     );

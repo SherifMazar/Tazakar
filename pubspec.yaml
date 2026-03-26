@@ -45,10 +45,11 @@ dependencies:
   firebase_crashlytics: ^5.0.8
 
   # Utilities
-  intl: ^0.20.1
-  uuid: ^4.5.1
-  permission_handler: ^11.3.1
   connectivity_plus: ^6.1.0
+  equatable: ^2.0.5
+  intl: ^0.20.1
+  permission_handler: ^11.3.1
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:

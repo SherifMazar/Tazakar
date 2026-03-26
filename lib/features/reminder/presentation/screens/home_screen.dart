@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tazakar/core/services/notification_service.dart';
 import 'package:tazakar/infrastructure/database/database_service.dart';
 import 'package:tazakar/infrastructure/platform/ai_channel.dart';
 
@@ -15,41 +14,6 @@ class HomeScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('Home — Coming Soon'),
-            const SizedBox(height: 32),
-
-            // ── AQ-03 Doze Test Button (remove after S3.3) ──
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  final scheduledAt = DateTime.now().add(
-                    const Duration(seconds: 15),
-                  );
-                  await NotificationService.instance.scheduleNotificationOnly(
-                    reminderId: 999,
-                    title: 'تذكر — اختبار',
-                    body: 'إشعار اختباري — Doze test ✅',
-                    scheduledAt: scheduledAt,
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Notification scheduled — lock the screen now!',
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  debugPrint('[AQ-03 Test] Error: $e');
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Test Notification (15s)'),
-            ),
 
             const SizedBox(height: 16),
 
