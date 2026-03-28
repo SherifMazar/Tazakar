@@ -79,44 +79,27 @@ class MigrationV1 {
   // recurrence_rule_id is nullable — NULL means the reminder fires once only.
   // category_id references categories(id); deletion of a category that has
   // reminders is blocked by the FOREIGN KEY constraint.
-  static Future<void> _createReminders(Transaction txn) async {
+  static Future<void> _createReminders(DatabaseExecutor txn) async {
     await txn.execute('''
-      CREATE TABLE IF NOT EXISTS reminders (
-        id                TEXT    NOT NULL PRIMARY KEY,
-        subject           TEXT    NOT NULL,
-        body              TEXT,
-        category_id       TEXT    NOT NULL,
-        trigger_at        INTEGER NOT NULL,
-        recurrence_rule_id TEXT,
-        is_done           INTEGER NOT NULL DEFAULT 0 CHECK (is_done IN (0, 1)),
-        is_deleted        INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
-        snooze_until      INTEGER,
-        created_at        INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
-        updated_at        INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000),
-        FOREIGN KEY (category_id)
-          REFERENCES categories (id)
-          ON DELETE RESTRICT,
-        FOREIGN KEY (recurrence_rule_id)
-          REFERENCES recurrence_rules (id)
-          ON DELETE SET NULL
-      );
+      CREATE TABLE reminders (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject      TEXT    NOT NULL,
+        category_id  INTEGER NOT NULL DEFAULT 1,
+        scheduled_at INTEGER NOT NULL,
+        dialect_code TEXT    NOT NULL DEFAULT "ar-AE",
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        snoozed_until INTEGER,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL
+      )
     ''');
 
-    // Index: fetch reminders due within a time window (home screen + notifications).
-    await txn.execute('''
-      CREATE INDEX IF NOT EXISTS idx_reminders_trigger_at
-        ON reminders (trigger_at)
-        WHERE is_deleted = 0 AND is_done = 0;
-    ''');
-
-    // Index: filter by category (category pill on home screen).
-    await txn.execute('''
-      CREATE INDEX IF NOT EXISTS idx_reminders_category
-        ON reminders (category_id)
-        WHERE is_deleted = 0;
-    ''');
-
-    dev.log('MigrationV1: reminders table ready.', name: 'Tazakar.DB');
+    await txn.execute(
+      'CREATE INDEX idx_reminders_scheduled ON reminders(scheduled_at) WHERE is_completed = 0',
+    );
+    await txn.execute(
+      'CREATE INDEX idx_reminders_category ON reminders(category_id) WHERE is_completed = 0',
+    );
   }
 
   // -------------------------------------------------------------------------

@@ -9,15 +9,18 @@ class LocaleNotifier extends AsyncNotifier<Locale> {
     final dbService = await ref.watch(databaseServiceProvider.future);
     final db = dbService.db;
     final service = ref.read(appSettingsServiceProvider);
-    final languageCode = await service.getLanguageCode(db);
-    return Locale(languageCode);
+    final dialectCode = await service.getDialectPref(db);
+    // dialect_pref stores dialect codes like 'ar-AE', 'ar-EG', or 'auto'.
+    // Extract the language tag prefix for Locale (e.g. 'ar-AE' → 'ar').
+    final langCode = dialectCode == 'auto' ? 'ar' : dialectCode.split('-').first;
+    return Locale(langCode);
   }
 
   Future<void> setLocale(String languageCode) async {
     final dbService = await ref.read(databaseServiceProvider.future);
     final db = dbService.db;
     final service = ref.read(appSettingsServiceProvider);
-    await service.set(db, AppSettingKeys.languageCode, languageCode);
+    await service.setDialectPref(db, languageCode);
     state = AsyncData(Locale(languageCode));
   }
 }

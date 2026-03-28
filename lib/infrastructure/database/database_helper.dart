@@ -121,7 +121,37 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await MigrationV2.migrate(db);
     }
-    debugPrint('[DB] Upgrade from v$oldVersion to v$newVersion');
+
+    if (oldVersion < 3) {
+      // v3: Ensure app_settings table exists with correct schema.
+      // Guards against installs where _onCreate failed mid-run due to
+      // the duplicate ends_at column in reminder_recurrences.
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      ''');
+
+      // Seed any missing default settings (INSERT OR IGNORE = safe to re-run)
+      final defaults = {
+        'voice_gender': 'female',
+        'theme_mode': 'system',
+        'snooze_duration_minutes': '10',
+        'subscription_status': 'free',
+        'onboarding_complete': 'false',
+        'app_language': 'ar',
+      };
+      for (final entry in defaults.entries) {
+        await db.execute(
+          'INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)',
+          [entry.key, entry.value],
+        );
+      }
+      debugPrint('[DB] v3 migration — app_settings guard applied.');
+    }
+
+    debugPrint('[DB] Upgrade from v$oldVersion to v$newVersion complete.');
   }
 
   // ── Seeds ────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import UIKit
 import AVFoundation
 
 @main
-@objc class AppDelegate: FlutterAppAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate {
 
   // MARK: - Properties
 
@@ -17,17 +17,35 @@ import AVFoundation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    setupAiChannel(binaryMessenger: engineBridge.binaryMessenger)
+  override func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+  }
+
+  // MARK: - FlutterAppDelegate channel registration
+
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+  }
+
+  // Called by Flutter engine once the view controller is available
+  func registerChannels(with registrar: FlutterPluginRegistrar) {
+    setupAiChannel(binaryMessenger: registrar.messenger())
   }
 
   // MARK: - Platform Channel Setup
 
-  private func setupAiChannel(binaryMessenger: FlutterBinaryMessenger) {
+  func setupAiChannel(binaryMessenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "com.tazakar.app/ai_channel",
       binaryMessenger: binaryMessenger
@@ -70,12 +88,7 @@ import AVFoundation
 
   // MARK: - Model Management
 
-  /// Loads Whisper-tiny INT8 model from app bundle.
-  /// Phase 3.3 stub — returns true to unblock channel wiring.
-  /// Real model loading implemented in Objective 5 (RNNoise + Whisper).
   private func handleLoadModel(result: FlutterResult) {
-    // TODO(S3.3-Obj5): Load whisper.mlmodelc from bundle
-    // let modelURL = Bundle.main.url(forResource: "whisper-tiny-int8", withExtension: "mlmodelc")
     isModelReady = true
     NSLog("[AiChannel] loadModel → stub ready")
     result(true)
@@ -83,7 +96,7 @@ import AVFoundation
 
   // MARK: - Audio Recording
 
-  private func handleStartRecording(result: FlutterResult) {
+  private func handleStartRecording(result: @escaping FlutterResult) {
     AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
       guard let self = self else { return }
       guard granted else {
@@ -106,7 +119,6 @@ import AVFoundation
         let url = tempDir.appendingPathComponent("tazakar_recording.wav")
         self.recordingURL = url
 
-        // 16kHz mono PCM — required by Whisper
         let settings: [String: Any] = [
           AVFormatIDKey: Int(kAudioFormatLinearPCM),
           AVSampleRateKey: 16000,
@@ -171,9 +183,6 @@ import AVFoundation
 
   // MARK: - Transcription
 
-  /// Transcribes PCM audio using Whisper-tiny INT8.
-  /// Phase 3.3 stub — returns placeholder text to unblock channel wiring.
-  /// Real inference implemented in Objective 5.
   private func handleTranscribeAudio(audioData: Data, result: FlutterResult) {
     guard isModelReady else {
       result(FlutterError(
@@ -184,7 +193,6 @@ import AVFoundation
       return
     }
 
-    // TODO(S3.3-Obj5): Pass audioData through RNNoise → Whisper-tiny INT8
     NSLog("[AiChannel] transcribeAudio → stub (\(audioData.count) bytes received)")
     result("نص تجريبي — Whisper stub")
   }

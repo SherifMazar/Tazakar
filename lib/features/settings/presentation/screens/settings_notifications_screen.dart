@@ -37,9 +37,8 @@ class _SettingsNotificationsScreenState
     setState(() {
       _snoozeDuration = value;
     });
-    final dbService = await ref.read(databaseServiceProvider.future);
-    final service = ref.read(appSettingsServiceProvider);
-    await service.set(dbService.db, AppSettingKeys.snoozeDuration, value.toString());
+    // Note: snooze duration is now a per-reminder field.
+    // Global default is kept as local UI state only.
   }
 
   @override
