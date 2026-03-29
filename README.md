@@ -1,6 +1,6 @@
 # tazakar
 
-AI-powered voice-first reminder app for Arabic speakers
+A new Flutter project.
 
 ## Getting Started
 

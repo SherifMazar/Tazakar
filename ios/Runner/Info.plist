@@ -26,10 +26,6 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Tazakar needs microphone access to hear your voice reminders.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Tazakar uses on-device speech recognition to understand your reminders.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
